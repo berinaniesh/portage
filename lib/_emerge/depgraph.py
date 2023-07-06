@@ -1520,7 +1520,7 @@ class depgraph:
         be solved by simply choosing one of the conflicting
         and removing all the other ones.
         It is able to solve somewhat more complex cases where
-        conflicts can only be solved simultaniously.
+        conflicts can only be solved simultaneously.
         """
         debug = "--debug" in self._frozen_config.myopts
 
