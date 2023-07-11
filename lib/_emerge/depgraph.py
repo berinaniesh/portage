@@ -4460,12 +4460,12 @@ class depgraph:
         if _disjunctions_recursive is None and disjunctions:
             self._queue_disjunction(pkg, dep_root, dep_priority, disjunctions)
 
-    def _queue_disjunction(self, pkg, dep_root, dep_priority, dep_struct):
+    def _queue_disjunction(self, pkg: Package, dep_root: str, dep_priority: DepPriority, dep_struct: List[Atom]):
         self._dynamic_config._dep_disjunctive_stack.append(
             (pkg, dep_root, dep_priority, dep_struct)
         )
 
-    def _pop_disjunction(self, allow_unsatisfied):
+    def _pop_disjunction(self, allow_unsatisfied: bool) -> int:
         """
         Pop one disjunctive dep from self._dynamic_config._dep_disjunctive_stack, and use it to
         populate self._dynamic_config._dep_stack.
@@ -4482,14 +4482,14 @@ class depgraph:
             return 0
         return 1
 
-    def _priority(self, **kwargs):
+    def _priority(self, **kwargs) -> Union[UnmergeDepPriority, DepPriority]:
         if "remove" in self._dynamic_config.myparams:
             priority_constructor = UnmergeDepPriority
         else:
             priority_constructor = DepPriority
         return priority_constructor(**kwargs)
 
-    def _dep_expand(self, root_config, atom_without_category):
+    def _dep_expand(self, root_config: RootConfig, atom_without_category: Atom) -> List[Atom]:
         """
         @param root_config: a root config instance
         @type root_config: RootConfig
@@ -4520,7 +4520,8 @@ class depgraph:
             )
         return deps
 
-    def _have_new_virt(self, root, atom_cp):
+    def _have_new_virt(self, root: str, atom_cp):
+        ppp(atom_cp)
         ret = False
         for (
             db,
