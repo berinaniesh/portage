@@ -124,6 +124,8 @@ from _emerge.Dependency import Dependency
 from portage.package.ebuild.config import config
 from portage import _trees_dict
 from _emerge.FakeVartree import FakeVartree
+from _emerge.SetArg import SetArg
+from _emerge.DepPriority import DepPriority
 
 
 def ppp(var):
@@ -3047,7 +3049,9 @@ class depgraph:
                     return 0
         return 1
 
-    def _expand_set_args(self, input_args, add_to_digraph=False):
+    def _expand_set_args(
+        self, input_args: List[SetArg], add_to_digraph: bool = False
+    ) -> Iterator[SetArg]:
         """
         Iterate over a list of DependencyArg instances and yield all
         instances given in the input together with additional SetArg
@@ -3062,7 +3066,6 @@ class depgraph:
         @return: All args given in the input together with additional
                 SetArg instances that are generated from nested sets
         """
-
         traversed_set_args = set()
 
         for arg in input_args:
@@ -3125,7 +3128,7 @@ class depgraph:
                             )
                             depgraph_sets.sets[nested_arg.name] = nested_arg.pset
 
-    def _add_dep(self, dep, allow_unsatisfied=False):
+    def _add_dep(self, dep: Dependency, allow_unsatisfied: bool = False) -> int:
         debug = "--debug" in self._frozen_config.myopts
         nodeps = "--nodeps" in self._frozen_config.myopts
         if dep.blocker:
@@ -3308,14 +3311,15 @@ class depgraph:
             return 0
         return 1
 
-    def _check_slot_conflict(self, pkg, atom):
+    def _check_slot_conflict(
+        self, pkg: Package, atom: Atom
+    ) -> Tuple[Optional[Package], Optional[bool]]:
         existing_node = next(
             self._dynamic_config._package_tracker.match(
                 pkg.root, pkg.slot_atom, installed=False
             ),
             None,
         )
-
         matches = None
         if existing_node:
             matches = pkg.cpv == existing_node.cpv
@@ -3326,7 +3330,7 @@ class depgraph:
 
         return (existing_node, matches)
 
-    def _add_pkg(self, pkg, dep):
+    def _add_pkg(self, pkg: Package, dep: Dependency) -> int:
         """
         Adds a package to the depgraph, queues dependencies, and handles
         slot conflicts.
@@ -3608,12 +3612,14 @@ class depgraph:
             dep_stack.append(pkg)
         return 1
 
-    def _add_installed_sonames(self, pkg):
+    def _add_installed_sonames(self, pkg: Package):
         if self._frozen_config.soname_deps_enabled and pkg.provides is not None:
             for atom in pkg.provides:
                 self._dynamic_config._installed_sonames[(pkg.root, atom)].append(pkg)
 
-    def _add_pkg_soname_deps(self, pkg, allow_unsatisfied=False):
+    def _add_pkg_soname_deps(
+        self, pkg: Package, allow_unsatisfied: bool = False
+    ) -> bool:
         if self._frozen_config.soname_deps_enabled and pkg.requires is not None:
             if isinstance(pkg.depth, int):
                 depth = pkg.depth + 1
@@ -3637,7 +3643,7 @@ class depgraph:
                     return False
         return True
 
-    def _remove_pkg(self, pkg):
+    def _remove_pkg(self, pkg: Package):
         """
         Remove a package and all its then parentless digraph
         children from all depgraph datastructures.
@@ -3704,7 +3710,7 @@ class depgraph:
         self._dynamic_config._highest_pkg_cache.clear()
         self._dynamic_config._highest_pkg_cache_cp_map.clear()
 
-    def _check_masks(self, pkg):
+    def _check_masks(self, pkg: Package):
         slot_key = (pkg.root, pkg.slot_atom)
 
         # Check for upgrades in the same slot that are
@@ -3714,14 +3720,14 @@ class depgraph:
         if other_pkg is not None and pkg < other_pkg:
             self._dynamic_config._masked_license_updates.add(other_pkg)
 
-    def _add_parent_atom(self, pkg, parent_atom):
+    def _add_parent_atom(self, pkg: Package, parent_atom: Atom):
         parent_atoms = self._dynamic_config._parent_atoms.get(pkg)
         if parent_atoms is None:
             parent_atoms = set()
             self._dynamic_config._parent_atoms[pkg] = parent_atoms
         parent_atoms.add(parent_atom)
 
-    def _add_slot_operator_dep(self, dep):
+    def _add_slot_operator_dep(self, dep: Dependency) -> bool:
         slot_key = (dep.root, dep.child.slot_atom)
         slot_info = self._dynamic_config._slot_operator_deps.get(slot_key)
         if slot_info is None:
@@ -3729,7 +3735,7 @@ class depgraph:
             self._dynamic_config._slot_operator_deps[slot_key] = slot_info
         slot_info.append(dep)
 
-    def _add_pkg_deps(self, pkg, allow_unsatisfied=False):
+    def _add_pkg_deps(self, pkg: Package, allow_unsatisfied: bool = False) -> bool:
         if not self._add_pkg_soname_deps(pkg, allow_unsatisfied=allow_unsatisfied):
             return False
 
@@ -3962,8 +3968,13 @@ class depgraph:
         return 1
 
     def _add_pkg_dep_string(
-        self, pkg, dep_root, dep_priority, dep_string, allow_unsatisfied
-    ):
+        self,
+        pkg: Package,
+        dep_root: str,
+        dep_priority: DepPriority,
+        dep_string: List[str],
+        allow_unsatisfied: bool,
+    ) -> int:
         _autounmask_backup = self._dynamic_config._autounmask
         if dep_priority.optional or dep_priority.ignored:
             # Temporarily disable autounmask for deps that
@@ -3976,7 +3987,15 @@ class depgraph:
         finally:
             self._dynamic_config._autounmask = _autounmask_backup
 
-    def _ignore_dependency(self, atom, pkg, child, dep, mypriority, recurse_satisfied):
+    def _ignore_dependency(
+        self,
+        atom: Atom,
+        pkg: Package,
+        child: Package,
+        dep: Dependency,
+        mypriority: DepPriority,
+        recurse_satisfied: bool,
+    ) -> bool:
         """
         In some cases, dep_check will return deps that shouldn't
         be processed any further, so they are identified and
