@@ -3972,7 +3972,7 @@ class depgraph:
         pkg: Package,
         dep_root: str,
         dep_priority: DepPriority,
-        dep_string: List[str],
+        dep_string: List[Atom],
         allow_unsatisfied: bool,
     ) -> int:
         _autounmask_backup = self._dynamic_config._autounmask
@@ -4038,8 +4038,8 @@ class depgraph:
         )
 
     def _wrapped_add_pkg_dep_string(
-        self, pkg, dep_root, dep_priority, dep_string, allow_unsatisfied
-    ):
+        self, pkg: Package, dep_root: str, dep_priority: DepPriority, dep_string: List[Atom], allow_unsatisfied: bool
+    ) -> int:
         if isinstance(pkg.depth, int):
             depth = pkg.depth + 1
         else:
@@ -4320,14 +4320,13 @@ class depgraph:
 
         return 1
 
-    def _minimize_children(self, parent, priority, root_config, atoms):
+    def _minimize_children(self, parent: Package, priority: DepPriority, root_config: RootConfig, atoms: List[Atom]) -> Iterator[Tuple[Optional[Atom], Optional[Package]]]:
         """
         Selects packages to satisfy the given atoms, and minimizes the
         number of selected packages. This serves to identify and eliminate
         redundant package selections when multiple atoms happen to specify
         a version range.
         """
-
         atom_pkg_map = {}
 
         for atom in atoms:
@@ -4427,8 +4426,8 @@ class depgraph:
                 yield (atom, child_pkgs[-1])
 
     def _queue_disjunctive_deps(
-        self, pkg, dep_root, dep_priority, dep_struct, _disjunctions_recursive=None
-    ):
+        self, pkg: Package, dep_root: str, dep_priority: DepPriority, dep_struct: List[Atom], _disjunctions_recursive: bool = None
+    ) -> Iterator[Atom]:
         """
         Queue disjunctive (virtual and ||) deps in self._dynamic_config._dep_disjunctive_stack.
         Yields non-disjunctive deps. Raises InvalidDependString when
