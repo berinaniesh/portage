@@ -4038,7 +4038,12 @@ class depgraph:
         )
 
     def _wrapped_add_pkg_dep_string(
-        self, pkg: Package, dep_root: str, dep_priority: DepPriority, dep_string: List[Atom], allow_unsatisfied: bool
+        self,
+        pkg: Package,
+        dep_root: str,
+        dep_priority: DepPriority,
+        dep_string: List[Atom],
+        allow_unsatisfied: bool,
     ) -> int:
         if isinstance(pkg.depth, int):
             depth = pkg.depth + 1
@@ -4320,7 +4325,13 @@ class depgraph:
 
         return 1
 
-    def _minimize_children(self, parent: Package, priority: DepPriority, root_config: RootConfig, atoms: List[Atom]) -> Iterator[Tuple[Optional[Atom], Optional[Package]]]:
+    def _minimize_children(
+        self,
+        parent: Package,
+        priority: DepPriority,
+        root_config: RootConfig,
+        atoms: List[Atom],
+    ) -> Iterator[Tuple[Optional[Atom], Optional[Package]]]:
         """
         Selects packages to satisfy the given atoms, and minimizes the
         number of selected packages. This serves to identify and eliminate
@@ -4426,7 +4437,12 @@ class depgraph:
                 yield (atom, child_pkgs[-1])
 
     def _queue_disjunctive_deps(
-        self, pkg: Package, dep_root: str, dep_priority: DepPriority, dep_struct: List[Atom], _disjunctions_recursive: bool = None
+        self,
+        pkg: Package,
+        dep_root: str,
+        dep_priority: DepPriority,
+        dep_struct: List[Atom],
+        _disjunctions_recursive: bool = None,
     ) -> Iterator[Atom]:
         """
         Queue disjunctive (virtual and ||) deps in self._dynamic_config._dep_disjunctive_stack.
@@ -4460,7 +4476,13 @@ class depgraph:
         if _disjunctions_recursive is None and disjunctions:
             self._queue_disjunction(pkg, dep_root, dep_priority, disjunctions)
 
-    def _queue_disjunction(self, pkg: Package, dep_root: str, dep_priority: DepPriority, dep_struct: List[Atom]):
+    def _queue_disjunction(
+        self,
+        pkg: Package,
+        dep_root: str,
+        dep_priority: DepPriority,
+        dep_struct: List[Atom],
+    ):
         self._dynamic_config._dep_disjunctive_stack.append(
             (pkg, dep_root, dep_priority, dep_struct)
         )
@@ -4489,7 +4511,9 @@ class depgraph:
             priority_constructor = DepPriority
         return priority_constructor(**kwargs)
 
-    def _dep_expand(self, root_config: RootConfig, atom_without_category: Atom) -> List[Atom]:
+    def _dep_expand(
+        self, root_config: RootConfig, atom_without_category: Atom
+    ) -> List[Atom]:
         """
         @param root_config: a root config instance
         @type root_config: RootConfig
@@ -4520,8 +4544,7 @@ class depgraph:
             )
         return deps
 
-    def _have_new_virt(self, root: str, atom_cp):
-        ppp(atom_cp)
+    def _have_new_virt(self, root: str, atom_cp: Atom) -> bool:
         ret = False
         for (
             db,
@@ -4535,7 +4558,7 @@ class depgraph:
                 break
         return ret
 
-    def _iter_atoms_for_pkg(self, pkg):
+    def _iter_atoms_for_pkg(self, pkg: Package) -> Iterator[Tuple[SetArg, Atom]]:
         depgraph_sets = self._dynamic_config.sets[pkg.root]
         atom_arg_map = depgraph_sets.atom_arg_map
         for atom in depgraph_sets.atoms.iterAtomsForPackage(pkg):
@@ -4561,7 +4584,7 @@ class depgraph:
                     continue
                 yield arg, atom
 
-    def select_files(self, args):
+    def select_files(self, args: List[str]) -> Tuple[bool, List[str]]:
         # Use the global event loop for spinner progress
         # indication during file owner lookups (bug #461412).
         def spinner_cb():
@@ -4578,7 +4601,7 @@ class depgraph:
             if spinner_cb.handle is not None:
                 spinner_cb.handle.cancel()
 
-    def _select_files(self, myfiles):
+    def _select_files(self, myfiles: List[str]) -> Tuple[int, List[str]]:
         """Given a list of .tbz2s, .ebuilds sets, and deps, populate
         self._dynamic_config._initial_arg_list and call self._resolve to create the
         appropriate depgraph and return a favorite list."""
@@ -5009,7 +5032,7 @@ class depgraph:
 
         return self._resolve(myfavorites)
 
-    def _gen_reinstall_sets(self):
+    def _gen_reinstall_sets(self) -> Iterator[SetArg]:
         atom_list = []
         for root, atom in self._rebuild.rebuild_list:
             atom_list.append((root, "__auto_rebuild__", atom))
@@ -5036,7 +5059,7 @@ class depgraph:
                 root_config=self._frozen_config.roots[root],
             )
 
-    def _resolve(self, myfavorites):
+    def _resolve(self, myfavorites: List[str]) -> Tuple[Union[int, bool], List[str]]:
         """Given self._dynamic_config._initial_arg_list, pull in the root nodes,
         call self._creategraph to process theier deps and return
         a favorite list."""
@@ -5375,14 +5398,13 @@ class depgraph:
             ):
                 self._dynamic_config._unsatisfied_deps_for_display = remaining_items
 
-    def _set_args(self, args):
+    def _set_args(self, args: List[SetArg]):
         """
         Create the "__non_set_args__" package set from atoms and packages given as
         arguments. This method can be called multiple times if necessary.
         The package selection cache is automatically invalidated, since
         arguments influence package selections.
         """
-
         set_atoms = {}
         non_set_atoms = {}
         for root in self._dynamic_config.sets:
@@ -5430,7 +5452,9 @@ class depgraph:
         for trees in self._dynamic_config._filtered_trees.values():
             trees["porttree"].dbapi._clear_cache()
 
-    def _greedy_slots(self, root_config, atom, blocker_lookahead=False):
+    def _greedy_slots(
+        self, root_config: RootConfig, atom: Atom, blocker_lookahead: bool = False
+    ) -> List[Atom]:
         """
         Return a list of slot atoms corresponding to installed slots that
         differ from the slot of the highest visible match. When
@@ -5528,7 +5552,11 @@ class depgraph:
 
         return [pkg.slot_atom for pkg in greedy_pkgs if pkg not in discard_pkgs]
 
-    def _select_atoms_from_graph(self, *pargs, **kwargs):
+    def _select_atoms_from_graph(
+        self,
+        *pargs: Tuple[str, str],
+        **kwargs: Dict[str, Union[FrozenSet[str], Package]],
+    ) -> List[Atom]:
         """
         Prefer atoms matching packages that have already been
         added to the graph or those that are installed and have
@@ -5539,14 +5567,14 @@ class depgraph:
 
     def _select_atoms_highest_available(
         self,
-        root,
-        depstring,
-        myuse=None,
-        parent=None,
-        strict=True,
-        trees=None,
-        priority=None,
-    ):
+        root: str,
+        depstring: List[Atom],
+        myuse: Optional[FrozenSet[str]] = None,
+        parent: Optional[Atom] = None,
+        strict: bool = True,
+        trees: Optional[_trees_dict] = None,
+        priority: Optional[int] = None,
+    ) -> List[Atom]:
         """This will raise InvalidDependString if necessary. If trees is
         None then self._dynamic_config._filtered_trees is used."""
 
@@ -5700,7 +5728,7 @@ class depgraph:
 
         return selected_atoms
 
-    def _expand_virt_from_graph(self, root, atom):
+    def _expand_virt_from_graph(self, root: str, atom: Atom) -> Iterator[Atom]:
         if not isinstance(atom, Atom):
             atom = Atom(atom)
 
@@ -5740,7 +5768,7 @@ class depgraph:
         if not any_match:
             yield atom
 
-    def _virt_deps_visible(self, pkg, ignore_use=False):
+    def _virt_deps_visible(self, pkg: Package, ignore_use: bool = False) -> bool:
         """
         Assumes pkg is a virtual package. Traverses virtual deps recursively
         and returns True if all deps are visible, False otherwise. This is
@@ -5777,8 +5805,11 @@ class depgraph:
         return True
 
     def _get_dep_chain(
-        self, start_node, target_atom=None, unsatisfied_dependency=False
-    ):
+        self,
+        start_node: Atom,
+        target_atom: Optional[Atom] = None,
+        unsatisfied_dependency: bool = False,
+    ) -> str:
         """
         Returns a list of (atom, node_type) pairs that represent a dep chain.
         If target_atom is None, the first package shown is pkg's parent.
@@ -5794,7 +5825,7 @@ class depgraph:
         all_parents = self._dynamic_config._parent_atoms
         graph = self._dynamic_config.digraph
 
-        def format_pkg(pkg):
+        def format_pkg(pkg: Package):
             pkg_name = f"{pkg.cpv}{_repo_separator}{pkg.repo}"
             return pkg_name
 
@@ -5976,7 +6007,9 @@ class depgraph:
             node = selected_parent
         return dep_chain
 
-    def _get_dep_chain_as_comment(self, pkg, unsatisfied_dependency=False):
+    def _get_dep_chain_as_comment(
+        self, pkg: Package, unsatisfied_dependency: bool = False
+    ) -> str:
         dep_chain = self._get_dep_chain(
             pkg, unsatisfied_dependency=unsatisfied_dependency
         )
@@ -5992,14 +6025,14 @@ class depgraph:
 
     def _show_unsatisfied_dep(
         self,
-        root,
-        atom,
-        myparent=None,
+        root: str,
+        atom: Atom,
+        myparent: Optional[Atom] = None,
         arg=None,
-        check_backtrack=False,
-        check_autounmask_breakage=False,
+        check_backtrack: bool = False,
+        check_autounmask_breakage: bool = False,
         show_req_use=None,
-        collect_use_changes=False,
+        collect_use_changes: bool = False,
     ):
         """
         When check_backtrack=True, no output is produced and
@@ -6596,7 +6629,9 @@ class depgraph:
             show_mask_docs()
             writemsg("\n", noiselevel=-1)
 
-    def _iter_match_pkgs_any(self, root_config, atom, onlydeps=False):
+    def _iter_match_pkgs_any(
+        self, root_config: RootConfig, atom: Atom, onlydeps: bool = False
+    ) -> Iterator[Atom]:
         for (
             db,
             pkg_type,
@@ -6608,7 +6643,9 @@ class depgraph:
                 root_config, pkg_type, atom, onlydeps=onlydeps
             )
 
-    def _iter_match_pkgs(self, root_config, pkg_type, atom, onlydeps=False):
+    def _iter_match_pkgs(
+        self, root_config: RootConfig, pkg_type: str, atom: Atom, onlydeps: bool = False
+    ) -> Atom:
         if atom.package:
             return self._iter_match_pkgs_atom(
                 root_config, pkg_type, atom, onlydeps=onlydeps
@@ -6617,7 +6654,9 @@ class depgraph:
             root_config, pkg_type, atom, onlydeps=onlydeps
         )
 
-    def _iter_match_pkgs_soname(self, root_config, pkg_type, atom, onlydeps=False):
+    def _iter_match_pkgs_soname(
+        self, root_config: RootConfig, pkg_type: str, atom: Atom, onlydeps: bool = False
+    ) -> Iterator[Package]:
         db = root_config.trees[self.pkg_tree_map[pkg_type]].dbapi
         installed = pkg_type == "installed"
 
@@ -6628,7 +6667,9 @@ class depgraph:
                     cpv, pkg_type, root_config, installed=installed, onlydeps=onlydeps
                 )
 
-    def _iter_match_pkgs_atom(self, root_config, pkg_type, atom, onlydeps=False):
+    def _iter_match_pkgs_atom(
+        self, root_config: RootConfig, pkg_type: str, atom: Atom, onlydeps: bool = False
+    ) -> Iterator[Package]:
         """
         Iterate over Package instances of pkg_type matching the given atom.
         This does not check visibility and it also does not match USE for
@@ -6744,7 +6785,13 @@ class depgraph:
                         yield inst_pkg
                         return
 
-    def _select_pkg_highest_available(self, root, atom, onlydeps=False, parent=None):
+    def _select_pkg_highest_available(
+        self,
+        root: str,
+        atom: Atom,
+        onlydeps: bool = False,
+        parent: Optional[Atom] = None,
+    ) -> Tuple[Package, Package]:
         if atom.package:
             cache_key = (
                 root,
@@ -6774,13 +6821,13 @@ class depgraph:
                 self._dynamic_config._visible_pkgs[pkg.root].cpv_inject(pkg)
         return ret
 
-    def _is_argument(self, pkg):
+    def _is_argument(self, pkg: Package) -> bool:
         for arg, atom in self._iter_atoms_for_pkg(pkg):
             if isinstance(arg, (AtomArg, PackageArg)):
                 return True
         return False
 
-    def _prune_highest_pkg_cache(self, pkg):
+    def _prune_highest_pkg_cache(self, pkg: Package):
         cache = self._dynamic_config._highest_pkg_cache
         key_map = self._dynamic_config._highest_pkg_cache_cp_map
         for cp in pkg.provided_cps:
@@ -6791,7 +6838,7 @@ class depgraph:
                 for cache_key in key_map.pop((pkg.root, atom), []):
                     cache.pop(cache_key, None)
 
-    def _want_installed_pkg(self, pkg):
+    def _want_installed_pkg(self, pkg: Package) -> bool:
         """
         Given an installed package returned from select_pkg, return
         True if the user has not explicitly requested for this package
@@ -6815,7 +6862,7 @@ class depgraph:
 
         return not arg
 
-    def _want_update_pkg(self, parent, pkg):
+    def _want_update_pkg(self, parent: Package, pkg: Package) -> bool:
         if self._frozen_config.excluded_pkgs.findAtomForPackage(
             pkg, modified_use=self._pkg_use_enabled(pkg)
         ):
@@ -6847,7 +6894,9 @@ class depgraph:
             and not self._too_deep(depth)
         )
 
-    def _will_replace_child(self, parent, root, atom):
+    def _will_replace_child(
+        self, parent: Package, root: str, atom: Atom
+    ) -> Optional[Package]:
         """
         Check if a given parent package will replace a child package
         for the given root and atom.
@@ -6870,7 +6919,7 @@ class depgraph:
                 return child
         return None
 
-    def _too_deep(self, depth):
+    def _too_deep(self, depth: int) -> bool:
         """
         Check if a package depth is deeper than the max allowed depth.
 
@@ -6888,7 +6937,7 @@ class depgraph:
         # so both values must be int type.
         return depth > deep
 
-    def _depth_increment(self, depth, n=1):
+    def _depth_increment(self, depth: int, n: int = 1) -> int:
         """
         Return depth + n if depth is an int, otherwise return depth.
 
@@ -6901,7 +6950,7 @@ class depgraph:
         """
         return depth + n if isinstance(depth, int) else depth
 
-    def _equiv_ebuild(self, pkg):
+    def _equiv_ebuild(self, pkg: Package) -> Package:
         try:
             return self._pkg(pkg.cpv, "ebuild", pkg.root_config, myrepo=pkg.repo)
         except portage.exception.PackageNotFound:
@@ -6910,7 +6959,7 @@ class depgraph:
                 None,
             )
 
-    def _equiv_ebuild_visible(self, pkg, autounmask_level=None):
+    def _equiv_ebuild_visible(self, pkg: Package, autounmask_level: int = None) -> bool:
         try:
             pkg_eb = self._pkg(pkg.cpv, "ebuild", pkg.root_config, myrepo=pkg.repo)
         except portage.exception.PackageNotFound:
@@ -6929,7 +6978,7 @@ class depgraph:
 
         return True
 
-    def _equiv_binary_installed(self, pkg):
+    def _equiv_binary_installed(self, pkg: Package) -> bool:
         build_time = pkg.build_time
         if not build_time:
             return False
