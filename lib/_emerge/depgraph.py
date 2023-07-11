@@ -101,10 +101,36 @@ from _emerge.resolver.circular_dependency import circular_dependency_handler
 from _emerge.resolver.output import Display, format_unmatched_atom
 
 # Type annotation imports
-from typing import Any, Optional, Dict, List, Tuple, Union, TYPE_CHECKING
+from typing import (
+    Any,
+    Optional,
+    Dict,
+    List,
+    Tuple,
+    Union,
+    Set,
+    FrozenSet,
+    Iterator,
+    TYPE_CHECKING,
+)
 
 if TYPE_CHECKING:
-    import _emerge.stdout_spinner.stdout_spinner
+    pass
+
+from _emerge.stdout_spinner import stdout_spinner
+from _emerge.resolver.backtracking import BacktrackParameter
+from _emerge.Package import Package
+from _emerge.Dependency import Dependency
+from portage.package.ebuild.config import config
+from portage import _trees_dict
+from _emerge.FakeVartree import FakeVartree
+
+
+def ppp(var):
+    print()
+    print(var)
+    print(type(var))
+    exit()
 
 
 # Exposes a depgraph interface to dep_check.
@@ -129,7 +155,7 @@ class _scheduler_graph_config:
         self.mergelist = mergelist
 
 
-def _wildcard_set(atoms):
+def _wildcard_set(atoms: List[Atom]):
     pkgs = InternalPackageSet(allow_wildcard=True)
     for x in atoms:
         try:
@@ -141,7 +167,14 @@ def _wildcard_set(atoms):
 
 
 class _frozen_depgraph_config:
-    def __init__(self, settings, trees, myopts, params, spinner):
+    def __init__(
+        self,
+        settings: portage.package.ebuild.config.config,
+        trees: portage._trees_dict,
+        myopts: Dict[str, Union[bool, str]],
+        params: Dict[str, Union[bool, int, str]],
+        spinner: stdout_spinner,
+    ):
         self.settings = settings
         self.target_root = settings["EROOT"]
         self.myopts = myopts
@@ -232,7 +265,11 @@ class _depgraph_sets:
 
 
 class _rebuild_config:
-    def __init__(self, frozen_config, backtrack_parameters):
+    def __init__(
+        self,
+        frozen_config: "_frozen_depgraph_config",
+        backtrack_parameters: BacktrackParameter,
+    ):
         self._graph = digraph()
         self._frozen_config = frozen_config
         self.rebuild_list = backtrack_parameters.rebuild_list.copy()
@@ -247,7 +284,7 @@ class _rebuild_config:
             or self.rebuild_if_unbuilt
         )
 
-    def add(self, dep_pkg, dep):
+    def add(self, dep_pkg: Package, dep: Dependency):
         parent = dep.collapsed_parent
         priority = dep.collapsed_priority
         rebuild_exclude = self._frozen_config.rebuild_exclude
@@ -263,7 +300,7 @@ class _rebuild_config:
         ):
             self._graph.add(dep_pkg, parent, priority)
 
-    def _needs_rebuild(self, dep_pkg):
+    def _needs_rebuild(self, dep_pkg: Package):
         """Check whether packages that depend on dep_pkg need to be rebuilt."""
         dep_root_slot = (dep_pkg.root, dep_pkg.slot_atom)
         if dep_pkg.built or dep_root_slot in self.orig_rebuild_list:
@@ -292,7 +329,7 @@ class _rebuild_config:
 
         return True
 
-    def _trigger_rebuild(self, parent, build_deps):
+    def _trigger_rebuild(self, parent: Package, build_deps: Dependency):
         root_slot = (parent.root, parent.slot_atom)
         if root_slot in self.rebuild_list:
             return False
@@ -448,7 +485,13 @@ class _dynamic_depgraph_config:
 
     """
 
-    def __init__(self, depgraph, myparams, allow_backtracking, backtrack_parameters):
+    def __init__(
+        self,
+        depgraph: "depgraph",
+        myparams: Dict[str, Union[bool, int, str]],
+        allow_backtracking: bool,
+        backtrack_parameters: BacktrackParameter,
+    ):
         self.myparams = myparams.copy()
         self._vdb_loaded = False
         self._allow_backtracking = allow_backtracking
@@ -651,14 +694,14 @@ class depgraph:
 
     def __init__(
         self,
-        settings,
-        trees,
-        myopts,
-        myparams,
-        spinner,
-        frozen_config=None,
-        backtrack_parameters=BacktrackParameter(),
-        allow_backtracking=False,
+        settings: config,
+        trees: _trees_dict,
+        myopts: Dict[str, Union[bool, str]],
+        myparams: Dict[str, Union[bool, int, str]],
+        spinner: stdout_spinner,
+        frozen_config: Optional["_frozen_depgraph_config"] = None,
+        backtrack_parameters: BacktrackParameter = BacktrackParameter(),
+        allow_backtracking: bool = False,
     ):
         if frozen_config is None:
             frozen_config = _frozen_depgraph_config(
@@ -737,7 +780,7 @@ class depgraph:
 
         self._dynamic_config._vdb_loaded = True
 
-    def _dynamic_deps_preload(self, fake_vartree):
+    def _dynamic_deps_preload(self, fake_vartree: FakeVartree):
         portdb = fake_vartree._portdb
         for pkg in fake_vartree.dbapi:
             self._spinner_update()
@@ -766,7 +809,7 @@ class depgraph:
     class _dynamic_deps_proc_exit:
         __slots__ = ("_pkg", "_fake_vartree")
 
-        def __init__(self, pkg, fake_vartree):
+        def __init__(self, pkg: Package, fake_vartree: FakeVartree):
             self._pkg = pkg
             self._fake_vartree = fake_vartree
 
@@ -1254,7 +1297,6 @@ class depgraph:
             "ignored due to changed dependencies:\n\n",
             noiselevel=-1,
         )
-
         for pkg in changed_deps:
             msg = f"     {pkg.cpv}{_repo_separator}{pkg.repo}"
             if pkg.root_config.settings["ROOT"] != "/":
@@ -2216,8 +2258,11 @@ class depgraph:
 
     @functools.lru_cache(maxsize=100)
     def _slot_operator_check_reverse_dependencies(
-        self, existing_pkg, candidate_pkg, replacement_parent=None
-    ):
+        self,
+        existing_pkg: Package,
+        candidate_pkg: Package,
+        replacement_parent: Optional[Package] = None,
+    ) -> bool:
         """
         Check if candidate_pkg satisfies all of existing_pkg's non-
         slot operator parents.
@@ -2320,7 +2365,11 @@ class depgraph:
         return True
 
     def _slot_operator_update_probe(
-        self, dep, new_child_slot=False, slot_conflict=False, autounmask_level=None
+        self,
+        dep: Dependency,
+        new_child_slot: bool = False,
+        slot_conflict: bool = False,
+        autounmask_level: Optional[int] = None,
     ):
         """
         slot/sub-slot := operators tend to prevent updates from getting pulled in,
@@ -2560,7 +2609,7 @@ class depgraph:
 
         return None
 
-    def _slot_operator_unsatisfied_probe(self, dep):
+    def _slot_operator_unsatisfied_probe(self, dep: Dependency):
         if (
             dep.parent.installed
             and self._frozen_config.excluded_pkgs.findAtomForPackage(
@@ -2624,7 +2673,7 @@ class depgraph:
 
         return False
 
-    def _slot_operator_unsatisfied_backtrack(self, dep):
+    def _slot_operator_unsatisfied_backtrack(self, dep: Dependency):
         parent = dep.parent
 
         if "--debug" in self._frozen_config.myopts:
@@ -2661,7 +2710,7 @@ class depgraph:
 
         self._dynamic_config._need_restart = True
 
-    def _in_blocker_conflict(self, pkg):
+    def _in_blocker_conflict(self, pkg: Package):
         """
         Check if pkg is involved in a blocker conflict. This method
         only works after the _validate_blockers method has been called.
@@ -2678,7 +2727,7 @@ class depgraph:
 
         return False
 
-    def _upgrade_available(self, pkg):
+    def _upgrade_available(self, pkg: Package):
         """
         Detect cases where an upgrade of the given package is available
         within the same slot.
@@ -2689,7 +2738,7 @@ class depgraph:
 
         return False
 
-    def _downgrade_probe(self, pkg):
+    def _downgrade_probe(self, pkg: Package):
         """
         Detect cases where a downgrade of the given package is considered
         desirable due to the current version being masked or unavailable.
@@ -2703,7 +2752,7 @@ class depgraph:
 
         return available_pkg is not None
 
-    def _select_atoms_probe(self, root, pkg):
+    def _select_atoms_probe(self, root: str, pkg: Package):
         selected_atoms = []
         use = self._pkg_use_enabled(pkg)
         for k in pkg._dep_keys:
@@ -2715,7 +2764,7 @@ class depgraph:
             )
         return frozenset(x.unevaluated_atom for x in selected_atoms)
 
-    def _flatten_atoms(self, pkg, use):
+    def _flatten_atoms(self, pkg: Package, use: FrozenSet[Atom]) -> FrozenSet[Atom]:
         """
         Evaluate all dependency atoms of the given package, and return
         them as a frozenset. For performance, results are cached.
@@ -2727,7 +2776,6 @@ class depgraph:
         @rtype: frozenset
         @return: set of evaluated atoms
         """
-
         cache_key = (pkg, use)
 
         try:
@@ -2758,7 +2806,9 @@ class depgraph:
         self._dynamic_config._flatten_atoms_cache[cache_key] = atoms
         return atoms
 
-    def _iter_similar_available(self, graph_pkg, atom, autounmask_level=None):
+    def _iter_similar_available(
+        self, graph_pkg: Package, atom: Atom, autounmask_level: Optional[int] = None
+    ) -> Iterator[Package]:
         """
         Given a package that's in the graph, do a rough check to
         see if a similar package is available to install. The given
@@ -2802,7 +2852,7 @@ class depgraph:
                 continue
             yield pkg
 
-    def _replace_installed_atom(self, inst_pkg):
+    def _replace_installed_atom(self, inst_pkg: Package):
         """
         Given an installed package, generate an atom suitable for
         slot_operator_replace_installed backtracking info. The replacement
@@ -2878,7 +2928,13 @@ class depgraph:
                         self._slot_operator_update_backtrack(dep)
 
     def _reinstall_for_flags(
-        self, pkg, forced_flags, orig_use, orig_iuse, cur_use, cur_iuse
+        self,
+        pkg: Package,
+        forced_flags: Set[str],
+        orig_use: FrozenSet[str],
+        orig_iuse: FrozenSet[str],
+        cur_use: FrozenSet[str],
+        cur_iuse: FrozenSet[str],
     ):
         """Return a set of flags that trigger reinstallation, or None if there
         are no such flags."""
@@ -2909,7 +2965,7 @@ class depgraph:
                 return flags
         return None
 
-    def _changed_deps(self, pkg):
+    def _changed_deps(self, pkg: Package):
         ebuild = None
         try:
             ebuild = self._pkg(pkg.cpv, "ebuild", pkg.root_config, myrepo=pkg.repo)
@@ -2966,14 +3022,14 @@ class depgraph:
 
         return changed
 
-    def _changed_slot(self, pkg):
+    def _changed_slot(self, pkg: Package):
         ebuild = self._equiv_ebuild(pkg)
         return ebuild is not None and (ebuild.slot, ebuild.sub_slot) != (
             pkg.slot,
             pkg.sub_slot,
         )
 
-    def _create_graph(self, allow_unsatisfied=False):
+    def _create_graph(self, allow_unsatisfied: bool = False):
         dep_stack = self._dynamic_config._dep_stack
         dep_disjunctive_stack = self._dynamic_config._dep_disjunctive_stack
         while dep_stack or dep_disjunctive_stack:
