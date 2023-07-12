@@ -126,6 +126,7 @@ from portage import _trees_dict
 from _emerge.FakeVartree import FakeVartree
 from _emerge.SetArg import SetArg
 from _emerge.DepPriority import DepPriority
+from portage._sets.base import DummyPackageSet, WorldSelectSet, InternalPackageSet
 
 
 def ppp(var):
@@ -7073,8 +7074,12 @@ class depgraph:
                 yield autounmask_level
 
     def _select_pkg_highest_available_imp(
-        self, root, atom, onlydeps=False, parent=None
-    ):
+        self,
+        root: str,
+        atom: Atom,
+        onlydeps: bool = False,
+        parent: Optional[Package] = None,
+    ) -> Tuple[Package, Optional[Package]]:
         pkg, existing = self._wrapped_select_pkg_highest_available_imp(
             root, atom, onlydeps=onlydeps, parent=parent
         )
@@ -7119,10 +7124,14 @@ class depgraph:
             # This ensures that we can fall back to an installed package
             # that may have been rejected in the autounmask path above.
             return default_selection
-
         return pkg, existing
 
-    def _pkg_visibility_check(self, pkg, autounmask_level=None, trust_graph=True):
+    def _pkg_visibility_check(
+        self,
+        pkg: Package,
+        autounmask_level: Optional[int] = None,
+        trust_graph: bool = True,
+    ) -> bool:
         if pkg.visible:
             return True
 
@@ -7229,7 +7238,9 @@ class depgraph:
 
         return True
 
-    def _pkg_use_enabled(self, pkg, target_use=None):
+    def _pkg_use_enabled(
+        self, pkg: Package, target_use: Optional[Dict[str, str]] = None
+    ) -> FrozenSet[str]:
         """
         If target_use is None, returns pkg.use.enabled + changes in _needed_use_config_changes.
         If target_use is given, the need changes are computed to make the package useable.
@@ -7279,7 +7290,7 @@ class depgraph:
                     new_changes[flag] = False
         new_use |= old_use.difference(target_use)
 
-        def want_restart_for_use_change(pkg, new_use):
+        def want_restart_for_use_change(pkg: Package, new_use: FrozenSet[str]) -> bool:
             if pkg not in self._dynamic_config.digraph.nodes:
                 return False
 
@@ -7360,8 +7371,13 @@ class depgraph:
         return new_use
 
     def _wrapped_select_pkg_highest_available_imp(
-        self, root, atom, onlydeps=False, autounmask_level=None, parent=None
-    ):
+        self,
+        root: str,
+        atom: Atom,
+        onlydeps: bool = False,
+        autounmask_level: int = None,
+        parent: Optional[Package] = None,
+    ) -> Tuple[Package, Optional[Package]]:
         root_config = self._frozen_config.roots[root]
         pkgsettings = self._frozen_config.pkgsettings[root]
         dbs = self._dynamic_config._filtered_trees[root]["dbs"]
@@ -7994,7 +8010,13 @@ class depgraph:
         # ordered by type preference ("ebuild" type is the last resort)
         return matched_packages[-1], existing_node
 
-    def _select_pkg_from_graph(self, root, atom, onlydeps=False, parent=None):
+    def _select_pkg_from_graph(
+        self,
+        root: str,
+        atom: Atom,
+        onlydeps: bool = False,
+        parent: Optional[Package] = None,
+    ) -> Tuple[Optional[Package], Optional[Package]]:
         """
         Select packages that have already been added to the graph or
         those that are installed and have not been scheduled for
@@ -8017,7 +8039,13 @@ class depgraph:
             root, atom, onlydeps=onlydeps, parent=parent
         )
 
-    def _select_pkg_from_installed(self, root, atom, onlydeps=False, parent=None):
+    def _select_pkg_from_installed(
+        self,
+        root: str,
+        atom: Atom,
+        onlydeps: bool = False,
+        parent: Optional[Package] = None,
+    ) -> Tuple[Optional[Package], Optional[List[Optional[Package]]]]:
         """
         Select packages that are installed.
         """
@@ -8058,10 +8086,14 @@ class depgraph:
             ),
             None,
         )
-
         return pkg, in_graph
 
-    def _complete_graph(self, required_sets=None):
+    def _complete_graph(
+        self,
+        required_sets: Optional[
+            Dict[str, Union[DummyPackageSet, WorldSelectSet, InternalPackageSet]]
+        ] = None,
+    ):
         """
         Add any deep dependencies of required sets (args, system, world) that
         have not been pulled into the graph yet. This ensures that the graph
