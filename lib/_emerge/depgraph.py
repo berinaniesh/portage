@@ -126,7 +126,9 @@ from portage import _trees_dict
 from _emerge.FakeVartree import FakeVartree
 from _emerge.SetArg import SetArg
 from _emerge.DepPriority import DepPriority
-from portage._sets.base import DummyPackageSet, WorldSelectSet, InternalPackageSet
+from portage._sets.base import DummyPackageSet, InternalPackageSet
+from portage._sets.files import WorldSelectedSet
+from portage.versions import _pkg_str
 
 
 def ppp(var):
@@ -8091,7 +8093,7 @@ class depgraph:
     def _complete_graph(
         self,
         required_sets: Optional[
-            Dict[str, Union[DummyPackageSet, WorldSelectSet, InternalPackageSet]]
+            Dict[str, Union[DummyPackageSet, WorldSelectedSet, InternalPackageSet]]
         ] = None,
     ):
         """
@@ -8329,8 +8331,14 @@ class depgraph:
         return 1
 
     def _pkg(
-        self, cpv, type_name, root_config, installed=False, onlydeps=False, myrepo=None
-    ):
+        self,
+        cpv: _pkg_str,
+        type_name: str,
+        root_config: RootConfig,
+        installed: bool = False,
+        onlydeps: bool = False,
+        myrepo: Optional[str] = None,
+    ) -> Package:
         """
         Get a package instance from the cache, or create a new
         one if necessary. Raises PackageNotFound from aux_get if it
@@ -8412,7 +8420,7 @@ class depgraph:
 
         return pkg
 
-    def _validate_blockers(self):
+    def _validate_blockers(self) -> bool:
         """Remove any blockers from the digraph that do not match any of the
         packages within the graph.  If necessary, create hard deps to ensure
         correct merge order such that mutually blocking packages are never
@@ -8780,7 +8788,7 @@ class depgraph:
 
         return True
 
-    def _accept_blocker_conflicts(self):
+    def _accept_blocker_conflicts(self) -> bool:
         acceptable = False
         for x in ("--buildpkgonly", "--fetchonly", "--fetch-all-uri", "--nodeps"):
             if x in self._frozen_config.myopts:
@@ -8788,7 +8796,7 @@ class depgraph:
                 break
         return acceptable
 
-    def _merge_order_bias(self, mygraph):
+    def _merge_order_bias(self, mygraph: digraph) -> int:
         """
         For optimal leaf node selection, promote deep system runtime deps and
         order nodes from highest to lowest overall reference count.
@@ -8823,7 +8831,9 @@ class depgraph:
 
         mygraph.order.sort(key=cmp_sort_key(cmp_merge_preference))
 
-    def altlist(self, reversed=DeprecationWarning):  # pylint: disable=redefined-builtin
+    def altlist(
+        self, reversed=DeprecationWarning
+    ) -> Tuple[Package, ...]:  # pylint: disable=redefined-builtin
         if reversed is not DeprecationWarning:
             warnings.warn(
                 "The reversed parameter of "
@@ -8851,7 +8861,9 @@ class depgraph:
 
         return retlist
 
-    def _implicit_libc_deps(self, mergelist, graph):
+    def _implicit_libc_deps(
+        self, mergelist: Tuple[Package, ...], graph: Optional[digraph]
+    ):
         """
         Create implicit dependencies on libc, in order to ensure that libc
         is installed as early as possible (see bug #303567).
@@ -8889,7 +8901,7 @@ class depgraph:
                                 libc_pkg, pkg, priority=DepPriority(buildtime=True)
                             )
 
-    def schedulerGraph(self):
+    def schedulerGraph(self) -> "_scheduler_graph_config":
         """
         The scheduler graph is identical to the normal one except that
         uninstall edges are reversed in specific cases that require
@@ -8937,10 +8949,9 @@ class depgraph:
         sched_config = _scheduler_graph_config(
             trees, pruned_pkg_cache, graph, mergelist
         )
-
         return sched_config
 
-    def break_refs(self):
+    def break_refs(self) -> None:
         """
         Break any references in Package instances that lead back to the depgraph.
         This is useful if you want to hold references to packages without also
@@ -8957,7 +8968,7 @@ class depgraph:
                 "root_config"
             ] = root_config
 
-    def _resolve_conflicts(self):
+    def _resolve_conflicts(self) -> None:
         if (
             "complete" not in self._dynamic_config.myparams
             and self._dynamic_config._allow_backtracking
@@ -8971,7 +8982,7 @@ class depgraph:
 
         self._process_slot_conflicts()
 
-    def _serialize_tasks(self):
+    def _serialize_tasks(self) -> None:
         debug = "--debug" in self._frozen_config.myopts
 
         if debug:

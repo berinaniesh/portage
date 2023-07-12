@@ -258,6 +258,7 @@ class PackageTracker:
         ret = match_from_list(atom, candidates)
         ret.sort(key=cmp_sort_key(lambda x, y: vercmp(x.version, y.version)))
         self._match_cache[cp_key][cache_key] = ret
+
         return iter(ret)
 
     def conflicts(self):
