@@ -131,7 +131,9 @@ from portage._sets.base import DummyPackageSet, InternalPackageSet
 from portage._sets.files import WorldSelectedSet
 from portage.versions import _pkg_str
 from _emerge.DepPriorityNormalRange import DepPriorityNormalRange
-
+from portage._sets.base import InternalPackageSet
+from portage.dbapi.porttree import portdbapi
+from portage.package.ebuild.getmaskingstatus import _MaskReason
 
 def ppp(var):
     print()
@@ -9948,7 +9950,7 @@ class depgraph:
                 noiselevel=-1,
             )
 
-    def _show_merge_list(self):
+    def _show_merge_list(self) -> None:
         if self._dynamic_config._serialized_tasks_cache is not None and not (
             self._dynamic_config._displayed_list is not None
             and self._dynamic_config._displayed_list
@@ -10090,7 +10092,7 @@ class depgraph:
 
         return display(self, mylist, favorites, verbosity)
 
-    def _display_autounmask(self, autounmask_continue: bool = False):
+    def _display_autounmask(self, autounmask_continue: bool = False) -> None:
         """
         Display --autounmask message and optionally write it to config files
         (using CONFIG_PROTECT). The message includes the comments and the changes.
@@ -10878,7 +10880,6 @@ class depgraph:
         Add a resume command to the graph and validate it in the process.  This
         will raise a PackageNotFound exception if a package is not available.
         """
-
         self._load_vdb()
 
         if not isinstance(resume_data, dict):
@@ -11134,13 +11135,13 @@ class depgraph:
         been disqualified due to autounmask changes.
         """
 
-    def need_restart(self):
+    def need_restart(self) -> bool:
         return (
             self._dynamic_config._need_restart
             and not self._dynamic_config._skip_restart
         )
 
-    def need_display_problems(self):
+    def need_display_problems(self) -> bool:
         """
         Returns true if this depgraph has problems which need to be
         displayed to the user.
@@ -11151,7 +11152,7 @@ class depgraph:
             return True
         return False
 
-    def need_config_change(self):
+    def need_config_change(self) -> bool:
         """
         Returns true if backtracking should terminate due to a needed
         configuration change.
@@ -11200,7 +11201,7 @@ class depgraph:
 
         return False
 
-    def _have_autounmask_changes(self):
+    def _have_autounmask_changes(self) -> bool:
         digraph_nodes = self._dynamic_config.digraph.nodes
         return (
             any(
@@ -11219,10 +11220,10 @@ class depgraph:
             )
         )
 
-    def need_config_reload(self):
+    def need_config_reload(self) -> bool:
         return self._dynamic_config._need_config_reload
 
-    def autounmask_breakage_detected(self):
+    def autounmask_breakage_detected(self) -> bool:
         try:
             for pargs, kwargs in self._dynamic_config._unsatisfied_deps_for_display:
                 self._show_unsatisfied_dep(
@@ -11277,7 +11278,7 @@ class _dep_check_composite_db(dbapi):
 
         return ret
 
-    def match_pkgs(self, atom):
+    def match_pkgs(self, atom: Atom) -> List[Package]:
         cache_key = (atom, atom.unevaluated_atom)
         ret = self._match_cache.get(cache_key)
         if ret is not None:
@@ -11364,7 +11365,7 @@ class _dep_check_composite_db(dbapi):
             self._cpv_pkg_map[pkg.cpv] = pkg
         return ret[:]
 
-    def _visible(self, pkg, atom_set, avoid_slot_conflict=True, probe_virt_update=True):
+    def _visible(self, pkg: Package, atom_set: InternalPackageSet, avoid_slot_conflict: bool = True, probe_virt_update: bool = True) -> bool:
         if pkg.installed and not self._depgraph._want_installed_pkg(pkg):
             return False
         if pkg.installed and (
@@ -11448,7 +11449,7 @@ class _dep_check_composite_db(dbapi):
             return False
         return True
 
-    def _iter_virt_update(self, pkg, atom_set):
+    def _iter_virt_update(self, pkg: Package, atom_set: InternalPackageSet) -> Iterator[Package]:
         if (
             self._depgraph._select_atoms_parent is not None
             and self._depgraph._want_update_pkg(
@@ -11468,10 +11469,9 @@ class _dep_check_composite_db(dbapi):
                     probe_virt_update=False,
                 ):
                     continue
-
                 yield new_child
 
-    def _have_virt_update(self, pkg, atom_set):
+    def _have_virt_update(self, pkg: Package, atom_set: InternalPackageSet) -> bool:
         for new_child in self._iter_virt_update(pkg, atom_set):
             if pkg < new_child:
                 return True
@@ -11486,7 +11486,7 @@ class _dep_check_composite_db(dbapi):
         return [pkg.cpv for pkg in self.match_pkgs(atom)]
 
 
-def ambiguous_package_name(arg, atoms, root_config, spinner, myopts):
+def ambiguous_package_name(arg: str, atoms: List[Atom], root_config: RootConfig, spinner: stdout_spinner, myopts: Dict[str, Union[bool, int, str]]) -> None:
     if "--quiet" in myopts:
         writemsg(
             f'!!! The short ebuild name "{arg}" is ambiguous. Please specify\n',
@@ -11524,7 +11524,7 @@ def ambiguous_package_name(arg, atoms, root_config, spinner, myopts):
     )
 
 
-def _spinner_start(spinner, myopts):
+def _spinner_start(spinner: stdout_spinner, myopts: Dict[str, Union[bool, str]]) -> None:
     if spinner is None:
         return
     if "--quiet" not in myopts and (
@@ -11576,7 +11576,7 @@ def _spinner_start(spinner, myopts):
     spinner.start_time = time.time()
 
 
-def _spinner_stop(spinner):
+def _spinner_stop(spinner: stdout_spinner) -> None:
     if spinner is None or spinner.update == spinner.update_quiet:
         return
 
@@ -11595,7 +11595,7 @@ def _spinner_stop(spinner):
 def backtrack_depgraph(
     settings: portage.package.ebuild.config.config,
     trees: portage._trees_dict,
-    myopts: Dict[str, Union[str, int, bool]],
+    myopts: Dict[str, Union[bool, str]],
     myparams: Dict[str, Union[int, str, bool]],
     myaction: Optional[str],
     myfiles: List[str],
@@ -11617,8 +11617,8 @@ def backtrack_depgraph(
 def _backtrack_depgraph(
     settings: portage.package.ebuild.config.config,
     trees: portage._trees_dict,
-    myopts: Dict[str, Union[str, int, bool]],
-    myparams: Dict[str, Union[int, str, bool]],
+    myopts: Dict[str, Union[bool, str]],
+    myparams: Dict[str, Union[bool, int, str]],
     myaction: Optional[str],
     myfiles: List[str],
     spinner: "_emerge.stdout_spinner.stdout_spinner",
@@ -11722,8 +11722,8 @@ def resume_depgraph(
     settings: portage.package.ebuild.config.config,
     trees: portage._trees_dict,
     mtimedb: Any,
-    myopts: Dict[str, Union[str, int, bool]],
-    myparams: Dict[str, Union[str, bool]],
+    myopts: Dict[str, Union[bool, str]],
+    myparams: Dict[str, Union[bool, int, str]],
     spinner: "_emerge.stdout_spinner.stdout_spinner",
 ):
     """
@@ -11740,8 +11740,8 @@ def _resume_depgraph(
     settings: portage.package.ebuild.config.config,
     trees: portage._trees_dict,
     mtimedb: Any,
-    myopts: Dict[str, Union[str, int, bool]],
-    myparams: Dict[str, Union[str, bool]],
+    myopts: Dict[str, Union[bool, str]],
+    myparams: Dict[str, Union[bool, int, str]],
     spinner: "_emerge.stdout_spinner.stdout_spinner",
 ):
     """
@@ -11841,17 +11841,17 @@ def _resume_depgraph(
 
 
 def get_mask_info(
-    root_config,
-    cpv,
-    pkgsettings,
-    db,
-    pkg_type,
-    built,
-    installed,
-    db_keys,
-    myrepo=None,
-    _pkg_use_enabled=None,
-):
+    root_config: RootConfig,
+    cpv: _pkg_str,
+    pkgsettings: config,
+    db: portdbapi,
+    pkg_type: str,
+    built: bool,
+    installed: bool,
+    db_keys: List[str],
+    myrepo: Optional[str] = None,
+    _pkg_use_enabled: Optional[Callable] = None,
+) -> Tuple[Dict[str, str], List[str]]:
     try:
         metadata = dict(zip(db_keys, db.aux_get(cpv, db_keys, myrepo=myrepo)))
     except KeyError:
@@ -11880,11 +11880,10 @@ def get_mask_info(
             mreasons = get_masking_status(
                 pkg, pkgsettings, root_config, myrepo=myrepo, use=modified_use
             )
-
     return metadata, mreasons
 
 
-def show_masked_packages(masked_packages):
+def show_masked_packages(masked_packages: List[Any]) -> bool:
     shown_licenses = set()
     shown_comments = set()
     # Maybe there is both an ebuild and a binary. Only
@@ -11942,6 +11941,7 @@ def show_masked_packages(masked_packages):
             msg = f"A copy of the '{l}' license is located at '{l_path}'.\n\n"
             writemsg(msg, noiselevel=-1)
             shown_licenses.add(l)
+
     return have_eapi_mask
 
 
@@ -11970,7 +11970,7 @@ def show_blocker_docs_link():
     )
 
 
-def get_masking_status(pkg, pkgsettings, root_config, myrepo=None, use=None):
+def get_masking_status(pkg: Package, pkgsettings: config, root_config: RootConfig, myrepo: Optional[str] = None, use: Optional[FrozenSet[str]] = None) -> List[_MaskReason]:
     return [
         mreason.message
         for mreason in _get_masking_status(
@@ -11979,7 +11979,7 @@ def get_masking_status(pkg, pkgsettings, root_config, myrepo=None, use=None):
     ]
 
 
-def _get_masking_status(pkg, pkgsettings, root_config, myrepo=None, use=None):
+def _get_masking_status(pkg: Package, pkgsettings: config, root_config: RootConfig, myrepo: Optional[str] = None, use: Optional[FrozenSet[str]] = None) -> List[_MaskReason]:
     mreasons = _getmaskingstatus(
         pkg,
         settings=pkgsettings,
