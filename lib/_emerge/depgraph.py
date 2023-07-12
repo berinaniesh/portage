@@ -111,6 +111,7 @@ from typing import (
     Set,
     FrozenSet,
     Iterator,
+    Callable,
     TYPE_CHECKING,
 )
 
@@ -129,6 +130,7 @@ from _emerge.DepPriority import DepPriority
 from portage._sets.base import DummyPackageSet, InternalPackageSet
 from portage._sets.files import WorldSelectedSet
 from portage.versions import _pkg_str
+from _emerge.DepPriorityNormalRange import DepPriorityNormalRange
 
 
 def ppp(var):
@@ -9050,7 +9052,7 @@ class depgraph:
         ignore_world = self._dynamic_config.myparams.get("ignore_world", False)
         asap_nodes = []
 
-        def get_nodes(**kwargs):
+        def get_nodes(**kwargs) -> List[Package]:
             """
             Returns leaf nodes excluding Uninstall instances
             since those should be executed as late as possible.
@@ -9138,7 +9140,12 @@ class depgraph:
 
                 asap_nodes.extend(libc_pkgs)
 
-        def gather_deps(ignore_priority, mergeable_nodes, selected_nodes, node):
+        def gather_deps(
+            ignore_priority: Callable,
+            mergeable_nodes: Set[Package],
+            selected_nodes: Set[Package],
+            node: Package,
+        ) -> bool:
             """
             Recursively gather a group of nodes that RDEPEND on
             eachother. This ensures that they are merged as a group
@@ -9166,12 +9173,12 @@ class depgraph:
                     return False
             return True
 
-        def ignore_uninst_or_med(priority):
+        def ignore_uninst_or_med(priority) -> bool:
             if priority is BlockerDepPriority.instance:
                 return True
             return priority_range.ignore_medium(priority)
 
-        def ignore_uninst_or_med_soft(priority):
+        def ignore_uninst_or_med_soft(priority) -> bool:
             if priority is BlockerDepPriority.instance:
                 return True
             return priority_range.ignore_medium_soft(priority)
@@ -9292,7 +9299,10 @@ class depgraph:
 
             if not selected_nodes:
 
-                def find_smallest_cycle(mergeable_nodes, local_priority_range):
+                def find_smallest_cycle(
+                    mergeable_nodes: Set[Package],
+                    local_priority_range: DepPriorityNormalRange,
+                ) -> Tuple[Optional[Set[Package]], Optional[Callable]]:
                     if prefer_asap and asap_nodes:
                         nodes = asap_nodes
                     else:
@@ -9875,7 +9885,7 @@ class depgraph:
 
         return retlist, scheduler_graph
 
-    def _show_circular_deps(self, mygraph):
+    def _show_circular_deps(self, mygraph) -> None:
         self._dynamic_config._circular_dependency_handler = circular_dependency_handler(
             self, mygraph
         )
@@ -10062,7 +10072,12 @@ class depgraph:
         if "--quiet" not in self._frozen_config.myopts:
             show_blocker_docs_link()
 
-    def display(self, mylist, favorites=[], verbosity=None):
+    def display(
+        self,
+        mylist: Tuple[Package, ...],
+        favorites: List[Optional[str]] = [],
+        verbosity: Optional[int] = None,
+    ) -> int:
         # This is used to prevent display_problems() from
         # redundantly displaying this exact same merge list
         # again via _show_merge_list().
@@ -10075,7 +10090,7 @@ class depgraph:
 
         return display(self, mylist, favorites, verbosity)
 
-    def _display_autounmask(self, autounmask_continue=False):
+    def _display_autounmask(self, autounmask_continue: bool = False):
         """
         Display --autounmask message and optionally write it to config files
         (using CONFIG_PROTECT). The message includes the comments and the changes.
@@ -10099,7 +10114,7 @@ class depgraph:
         pretend = "--pretend" in self._frozen_config.myopts
         enter_invalid = "--ask-enter-invalid" in self._frozen_config.myopts
 
-        def check_if_latest(pkg, check_visibility=False):
+        def check_if_latest(pkg: Package, check_visibility: bool = False) -> Tuple[bool, bool]:
             is_latest = True
             is_latest_in_slot = True
             dbs = self._dynamic_config._filtered_trees[pkg.root]["dbs"]
