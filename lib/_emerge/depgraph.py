@@ -353,7 +353,6 @@ class _rebuild_config:
         return True
 
     def _trigger_rebuild(self, parent: Package, build_deps: Dependency):
-        ppp(build_deps)
         root_slot = (parent.root, parent.slot_atom)
         if root_slot in self.rebuild_list:
             return False
