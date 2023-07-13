@@ -46,7 +46,7 @@ from portage.exception import (
     PackageNotFound,
     PortageException,
 )
-from portage.output import colorize, create_color_func, darkgreen, green
+from portage.output import colorize, create_color_func, darkgreen, green # type: ignore # reaon: object-proxying
 
 bad = create_color_func("BAD")
 from portage.package.ebuild.config import _get_feature_flags
@@ -110,6 +110,7 @@ from typing import (
     Union,
     Set,
     FrozenSet,
+    Iterable,
     Iterator,
     Callable,
     TYPE_CHECKING,
@@ -164,7 +165,7 @@ class _scheduler_graph_config:
         self.mergelist = mergelist
 
 
-def _wildcard_set(atoms: List[Atom]):
+def _wildcard_set(atoms: List[Union[str, Atom]]):
     pkgs = InternalPackageSet(allow_wildcard=True)
     for x in atoms:
         try:
@@ -178,10 +179,12 @@ def _wildcard_set(atoms: List[Atom]):
 class _frozen_depgraph_config:
     def __init__(
         self,
-        settings: portage.package.ebuild.config.config,
-        trees: portage._trees_dict,
-        myopts: Dict[str, Union[bool, str]],
-        params: Dict[str, Union[bool, int, str]],
+        settings: config,
+        trees: _trees_dict,
+        # myopts eg. {"--backtrack": 20, "--exclude": ['neovim', 'vim'], "--pretend": True, "--regex-search-auto": 'y'}
+        myopts: Dict[str, Union[bool, int, str, Iterable[str]]],
+        # params eg. {"recurse": True, "bdeps": "auto"}
+        params: Dict[str, Union[bool, str]],
         spinner: stdout_spinner,
     ):
         self.settings = settings
@@ -194,12 +197,12 @@ class _frozen_depgraph_config:
         self.requested_depth = params.get("deep", 0)
         self._running_root = trees[trees._running_eroot]["root_config"]
         self.pkgsettings = {}
-        self.trees = {}
+        self.trees: Dict[Any, Any] = {}
         self._trees_orig = trees
         self.roots = {}
         # All Package instances
-        self._pkg_cache = {}
-        self._highest_license_masked = {}
+        self._pkg_cache: Dict[Any, Any] = {}
+        self._highest_license_masked: Dict[Any, Any] = {}
         # We can't know that an soname dep is unsatisfied if there are
         # any unbuilt ebuilds in the graph, since unbuilt ebuilds have
         # no soname data. Therefore, only enable soname dependency
@@ -230,7 +233,7 @@ class _frozen_depgraph_config:
                 ignore_built_slot_operator_deps=ignore_built_slot_operator_deps,
                 soname_deps=self.soname_deps_enabled,
             )
-            self.pkgsettings[myroot] = portage.config(
+            self.pkgsettings[myroot] = portage.config( # type: ignore # reason: object proxying
                 clone=self.trees[myroot]["vartree"].settings
             )
             if self.soname_deps_enabled and "remove" not in params:
@@ -243,17 +246,17 @@ class _frozen_depgraph_config:
         else:
             self._required_set_names = {"world"}
 
-        atoms = " ".join(myopts.get("--exclude", [])).split()
+        atoms = " ".join(myopts.get("--exclude", [])).split() # type: ignore # reason: --exclude is always an Iterable[str]
         self.excluded_pkgs = _wildcard_set(atoms)
-        atoms = " ".join(myopts.get("--reinstall-atoms", [])).split()
+        atoms = " ".join(myopts.get("--reinstall-atoms", [])).split() # type: ignore # reason: --reinstall-atoms is always Iterable[str]
         self.reinstall_atoms = _wildcard_set(atoms)
-        atoms = " ".join(myopts.get("--usepkg-exclude", [])).split()
+        atoms = " ".join(myopts.get("--usepkg-exclude", [])).split() # type: ignore # reason: --usepkg-exclude is always Iterable[str]
         self.usepkg_exclude = _wildcard_set(atoms)
-        atoms = " ".join(myopts.get("--useoldpkg-atoms", [])).split()
+        atoms = " ".join(myopts.get("--useoldpkg-atoms", [])).split() # type: ignore # reason: --usepkg-exclude is always Iterable[str]
         self.useoldpkg_atoms = _wildcard_set(atoms)
-        atoms = " ".join(myopts.get("--rebuild-exclude", [])).split()
+        atoms = " ".join(myopts.get("--rebuild-exclude", [])).split() # type: ignore # reason: --rebuild-exclude is always Iterable[str]
         self.rebuild_exclude = _wildcard_set(atoms)
-        atoms = " ".join(myopts.get("--rebuild-ignore", [])).split()
+        atoms = " ".join(myopts.get("--rebuild-ignore", [])).split() # type: ignore # reason: --rebuild-ignore is always Iterable[str]
         self.rebuild_ignore = _wildcard_set(atoms)
 
         self.rebuild_if_new_rev = "--rebuild-if-new-rev" in myopts
