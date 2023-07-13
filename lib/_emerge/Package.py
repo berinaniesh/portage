@@ -88,6 +88,11 @@ class Package(Task):
         "_mtime_",
     ]
 
+    # Added these variables for type hints. Portage can function just
+    # fine with the declaration of these variables in __slots__.
+    built: bool
+    installed: bool
+
     _dep_keys = ("BDEPEND", "DEPEND", "IDEPEND", "PDEPEND", "RDEPEND")
     _buildtime_keys = ("BDEPEND", "DEPEND")
     _runtime_keys = ("IDEPEND", "PDEPEND", "RDEPEND")

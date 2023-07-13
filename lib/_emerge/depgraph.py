@@ -276,7 +276,7 @@ class _frozen_depgraph_config:
 
 
 class _depgraph_sets:
-    def __init__(self):
+    def __init__(self) -> None:
         # contains all sets added to the graph
         self.sets = {}
         # contains non-set atoms given as arguments
@@ -284,15 +284,15 @@ class _depgraph_sets:
         # contains all atoms from all sets added to the graph, including
         # atoms given as arguments
         self.atoms = InternalPackageSet(allow_repo=True)
-        self.atom_arg_map = {}
+        self.atom_arg_map: Dict[Any, Any] = {}
 
 
 class _rebuild_config:
     def __init__(
         self,
         frozen_config: "_frozen_depgraph_config",
-        backtrack_parameters: BacktrackParameter,
-    ):
+        backtrack_parameters: "BacktrackParameter",
+    ) -> None:
         self._graph = digraph()
         self._frozen_config = frozen_config
         self.rebuild_list = backtrack_parameters.rebuild_list.copy()
@@ -307,7 +307,7 @@ class _rebuild_config:
             or self.rebuild_if_unbuilt
         )
 
-    def add(self, dep_pkg: Package, dep: Dependency):
+    def add(self, dep_pkg: "Package", dep: "Dependency") -> None:
         parent = dep.collapsed_parent
         priority = dep.collapsed_priority
         rebuild_exclude = self._frozen_config.rebuild_exclude
@@ -323,7 +323,7 @@ class _rebuild_config:
         ):
             self._graph.add(dep_pkg, parent, priority)
 
-    def _needs_rebuild(self, dep_pkg: Package):
+    def _needs_rebuild(self, dep_pkg: "Package") -> bool:
         """Check whether packages that depend on dep_pkg need to be rebuilt."""
         dep_root_slot = (dep_pkg.root, dep_pkg.slot_atom)
         if dep_pkg.built or dep_root_slot in self.orig_rebuild_list:
@@ -353,6 +353,7 @@ class _rebuild_config:
         return True
 
     def _trigger_rebuild(self, parent: Package, build_deps: Dependency):
+        ppp(build_deps)
         root_slot = (parent.root, parent.slot_atom)
         if root_slot in self.rebuild_list:
             return False
