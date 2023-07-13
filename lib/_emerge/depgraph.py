@@ -126,6 +126,7 @@ if TYPE_CHECKING:
     import portage.digraph # type: ignore
     import portage.getmaskingreason # type: ignore
     import portage.dep_check # type: ignore
+    import portage.match_from_list # type: ignore
 
 from _emerge.stdout_spinner import stdout_spinner
 from portage._sets.base import InternalPackageSet

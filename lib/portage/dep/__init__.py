@@ -1453,6 +1453,8 @@ class Atom(str):
 
     # Added for type hints
     blocker: Any
+    root: Any
+    type_name: Any
     depth: Any
     unevaluated_atom: Any
     without_use: Any
