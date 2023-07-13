@@ -3,9 +3,14 @@
 
 from _emerge.DepPriority import DepPriority
 
+# Typing hints import
+from typing import Any
 
 class BlockerDepPriority(DepPriority):
     __slots__ = ()
+
+    # Added for type hinting
+    instance: Any
 
     def __int__(self):
         return 0

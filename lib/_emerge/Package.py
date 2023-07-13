@@ -99,6 +99,7 @@ class Package(Task):
     depth: Any
     root_config: Any
     onlydeps: Any
+    type_name: Any
 
     _dep_keys = ("BDEPEND", "DEPEND", "IDEPEND", "PDEPEND", "RDEPEND")
     _buildtime_keys = ("BDEPEND", "DEPEND")

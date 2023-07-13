@@ -3,6 +3,8 @@
 
 from _emerge.DepPriority import DepPriority
 
+# Type annotation imports
+from typing import Any
 
 class DepPrioritySatisfiedRange:
     """
@@ -24,6 +26,9 @@ class DepPrioritySatisfiedRange:
     MEDIUM_POST = 3
     SOFT = 1
     NONE = 0
+
+    # For type hinting
+    ignore_priority: Any
 
     @classmethod
     def _ignore_optional(cls, priority):

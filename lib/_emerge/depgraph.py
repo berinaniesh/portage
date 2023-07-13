@@ -117,13 +117,15 @@ from typing import (
 )
 
 if TYPE_CHECKING:
-    import portage.dep_getkey # type: ignore # reason: object proxying
-    import portage.catsplit # type: ignore # reason: object proxying
-    import portage.writemsg_stdout # type: ignore # reason: object proxying
-    import portage.writemsg # type: ignore # reason: object proxying
-    import portage.isvalidatom # type: ignore # reason: object proxying
-    import portage.digraph # type: ignore # reason: object proxying
+    # These are proxied imports and so they are set to be ignored by mypy
+    import portage.dep_getkey # type: ignore
+    import portage.catsplit # type: ignore
+    import portage.writemsg_stdout # type: ignore
+    import portage.writemsg # type: ignore
+    import portage.isvalidatom # type: ignore
+    import portage.digraph # type: ignore
     import portage.getmaskingreason # type: ignore
+    import portage.dep_check # type: ignore
 
 from _emerge.stdout_spinner import stdout_spinner
 from portage._sets.base import InternalPackageSet

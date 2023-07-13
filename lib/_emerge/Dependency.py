@@ -30,6 +30,7 @@ class Dependency(SlotObject):
     parent: Any
     child: Any
     onlydeps: Any
+    want_update: Any
 
     def __init__(self, **kwargs):
         SlotObject.__init__(self, **kwargs)

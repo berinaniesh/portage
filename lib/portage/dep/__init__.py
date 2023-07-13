@@ -1453,6 +1453,7 @@ class Atom(str):
 
     # Added for type hints
     blocker: Any
+    depth: Any
     unevaluated_atom: Any
     without_use: Any
     extend: Any
@@ -1460,13 +1461,16 @@ class Atom(str):
     match: Any
     blocker: Any
     unevaluated_atom: Any
+    slot: Any
     sub_slot: Any
     use: Any
     _metadata: Any
     installed: Any
     iuse: Any
     eapi: Any
+    cp: Any
     cpv: Any
+    repo: Any
 
     class _blocker:
         __slots__ = ("overlap",)
