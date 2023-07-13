@@ -2724,7 +2724,7 @@ class depgraph:
         config = backtrack_infos.setdefault("config", {})
 
         # mask unwanted binary packages if necessary
-        masks = {}
+        masks: Dict[Any, Any] = {}
         if not parent.installed:
             masks.setdefault(parent, {})["slot_operator_mask_built"] = None
         if masks:

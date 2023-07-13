@@ -3,10 +3,19 @@
 
 from _emerge.Task import Task
 
+# Type annotation imports
+from typing import Any
 
 class Blocker(Task):
     __hash__ = Task.__hash__
     __slots__ = ("root", "atom", "cp", "eapi", "priority", "satisfied")
+
+    root: Any
+    atom: Any
+    cp: Any
+    epai: Any
+    priority: Any
+    satisfied: Any
 
     def __init__(self, **kwargs):
         Task.__init__(self, **kwargs)
