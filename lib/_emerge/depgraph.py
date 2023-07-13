@@ -520,23 +520,23 @@ class _dynamic_depgraph_config:
         self._vdb_loaded = False
         self._allow_backtracking = allow_backtracking
         # Maps nodes to the reasons they were selected for reinstallation.
-        self._reinstall_nodes = {}
+        self._reinstall_nodes: Dict[Any, Any] = {}
         # Contains a filtered view of preferred packages that are selected
         # from available repositories.
-        self._filtered_trees = {}
+        self._filtered_trees: Dict[Any, Any] = {}
         # Contains installed packages and new packages that have been added
         # to the graph.
-        self._graph_trees = {}
+        self._graph_trees: Dict[Any, Any] = {}
         # Caches visible packages returned from _select_package, for use in
         # depgraph._iter_atoms_for_pkg() SLOT logic.
         self._visible_pkgs = {}
         # contains the args created by select_files
-        self._initial_arg_list = []
-        self.digraph = portage.digraph()
+        self._initial_arg_list: List[Any] = []
+        self.digraph = portage.digraph() # type: ignore # reason: object proxy
         # manages sets added to the graph
         self.sets = {}
         # contains all nodes pulled in by self.sets
-        self._set_nodes = set()
+        self._set_nodes: Set[Any] = set()
         # Contains only Blocker -> Uninstall edges
         self._blocker_uninstalls = digraph()
         # Contains only Package -> Blocker edges
@@ -553,38 +553,38 @@ class _dynamic_depgraph_config:
         # Contains world packages that have been protected from
         # uninstallation but may not have been added to the graph
         # if the graph is not complete yet.
-        self._blocked_world_pkgs = {}
+        self._blocked_world_pkgs: Dict[Any, Any] = {}
         # Contains packages whose dependencies have been traversed.
         # This use used to check if we have accounted for blockers
         # relevant to a package.
-        self._traversed_pkg_deps = set()
-        self._parent_atoms = {}
+        self._traversed_pkg_deps: Set[Any] = set()
+        self._parent_atoms: Dict[Any, Any] = {}
         self._slot_conflict_handler = None
         self._circular_dependency_handler = None
         self._serialized_tasks_cache = None
         self._scheduler_graph = None
         self._displayed_list = None
-        self._pprovided_args = []
-        self._missing_args = []
-        self._masked_installed = set()
-        self._masked_license_updates = set()
-        self._unsatisfied_deps_for_display = []
+        self._pprovided_args: List[Any] = []
+        self._missing_args: List[Any] = []
+        self._masked_installed: Set[Any] = set()
+        self._masked_license_updates: Set[Any] = set()
+        self._unsatisfied_deps_for_display: List[Any] = []
         self._unsatisfied_blockers_for_display = None
         self._circular_deps_for_display = None
-        self._dep_stack = []
-        self._dep_disjunctive_stack = []
-        self._unsatisfied_deps = []
-        self._initially_unsatisfied_deps = []
-        self._ignored_deps = []
-        self._highest_pkg_cache = {}
-        self._highest_pkg_cache_cp_map = {}
-        self._flatten_atoms_cache = {}
-        self._changed_deps_pkgs = {}
+        self._dep_stack: List[Any] = []
+        self._dep_disjunctive_stack: List[Any] = []
+        self._unsatisfied_deps: List[Any] = []
+        self._initially_unsatisfied_deps: List[Any] = []
+        self._ignored_deps: List[Any] = []
+        self._highest_pkg_cache: Dict[Any, Any] = {}
+        self._highest_pkg_cache_cp_map: Dict[Any, Any] = {}
+        self._flatten_atoms_cache: Dict[Any, Any] = {}
+        self._changed_deps_pkgs: Dict[Any, Any] = {}
 
         # Binary packages that have been rejected because their USE
         # didn't match the user's config. It maps packages to a set
         # of flags causing the rejection.
-        self.ignored_binaries = {}
+        self.ignored_binaries: Dict[Any, Any] = {}
 
         self._circular_dependency = backtrack_parameters.circular_dependency
         self._needed_unstable_keywords = backtrack_parameters.needed_unstable_keywords
@@ -601,7 +601,7 @@ class _dynamic_depgraph_config:
         # For conditions that always require user intervention, such as
         # unsatisfied REQUIRED_USE (currently has no autounmask support).
         self._skip_restart = False
-        self._backtrack_infos = {}
+        self._backtrack_infos: Dict[Any, Any] = {}
 
         self._buildpkgonly_deps_unsatisfied = False
         self._quickpkg_direct_deps_unsatisfied = False
@@ -612,13 +612,13 @@ class _dynamic_depgraph_config:
         self._required_use_unsatisfied = False
         self._traverse_ignored_deps = False
         self._complete_mode = False
-        self._slot_operator_deps = {}
-        self._installed_sonames = collections.defaultdict(list)
+        self._slot_operator_deps: Dict[Any, Any] = {}
+        self._installed_sonames: Dict[Any, Any] = collections.defaultdict(list)
         self._package_tracker = PackageTracker(
             soname_deps=depgraph._frozen_config.soname_deps_enabled
         )
         # Track missed updates caused by solved conflicts.
-        self._conflict_missed_update = collections.defaultdict(dict)
+        self._conflict_missed_update: Dict[Any, Any] = collections.defaultdict(dict)
         dep_check_iface = _dep_check_graph_interface(
             will_replace_child=depgraph._will_replace_child,
             removal_action="remove" in myparams,
