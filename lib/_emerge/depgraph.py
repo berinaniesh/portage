@@ -46,7 +46,7 @@ from portage.exception import (
     PackageNotFound,
     PortageException,
 )
-from portage.output import colorize, create_color_func, darkgreen, green # type: ignore # reaon: object-proxying
+from portage.output import colorize, create_color_func, darkgreen, green  # type: ignore # reaon: object-proxying
 
 bad = create_color_func("BAD")
 from portage.package.ebuild.config import _get_feature_flags
@@ -120,6 +120,7 @@ if TYPE_CHECKING:
     pass
 
 from _emerge.stdout_spinner import stdout_spinner
+from portage._sets.base import InternalPackageSet
 from _emerge.resolver.backtracking import BacktrackParameter
 from _emerge.Package import Package
 from _emerge.Dependency import Dependency
@@ -134,7 +135,10 @@ from portage.versions import _pkg_str
 from _emerge.DepPriorityNormalRange import DepPriorityNormalRange
 from portage._sets.base import InternalPackageSet
 from portage.dbapi.porttree import portdbapi
+from portage.dbapi.porttree import portagetree
+from portage.dbapi.bintree import binarytree
 from portage.package.ebuild.getmaskingstatus import _MaskReason
+
 
 def ppp(var):
     print()
@@ -158,14 +162,20 @@ _dep_check_graph_interface = collections.namedtuple(
 
 
 class _scheduler_graph_config:
-    def __init__(self, trees, pkg_cache, graph, mergelist):
+    def __init__(
+        self,
+        trees: "Dict[str, Union[portdbapi, binarytree, FakeVartree]]",
+        pkg_cache: "Dict[Package, Package]",
+        graph: "digraph",
+        mergelist: "Tuple[Package, ...]",
+    ) -> None:
         self.trees = trees
         self.pkg_cache = pkg_cache
         self.graph = graph
         self.mergelist = mergelist
 
 
-def _wildcard_set(atoms: List[Union[str, Atom]]):
+def _wildcard_set(atoms: "List[Union[str, Atom]]") -> "InternalPackageSet":
     pkgs = InternalPackageSet(allow_wildcard=True)
     for x in atoms:
         try:
@@ -179,14 +189,15 @@ def _wildcard_set(atoms: List[Union[str, Atom]]):
 class _frozen_depgraph_config:
     def __init__(
         self,
-        settings: config,
-        trees: _trees_dict,
+        settings: "config",
+        trees: "_trees_dict",
         # myopts eg. {"--backtrack": 20, "--exclude": ['neovim', 'vim'], "--pretend": True, "--regex-search-auto": 'y'}
-        myopts: Dict[str, Union[bool, int, str, Iterable[str]]],
+        myopts: "Dict[str, Union[bool, int, str, Iterable[str]]]",
         # params eg. {"recurse": True, "bdeps": "auto"}
-        params: Dict[str, Union[bool, str]],
-        spinner: stdout_spinner,
-    ):
+        params: "Dict[str, Union[bool, str]]",
+        spinner: "stdout_spinner",
+    ) -> None:
+
         self.settings = settings
         self.target_root = settings["EROOT"]
         self.myopts = myopts
@@ -233,7 +244,7 @@ class _frozen_depgraph_config:
                 ignore_built_slot_operator_deps=ignore_built_slot_operator_deps,
                 soname_deps=self.soname_deps_enabled,
             )
-            self.pkgsettings[myroot] = portage.config( # type: ignore # reason: object proxying
+            self.pkgsettings[myroot] = portage.config(  # type: ignore # reason: object proxying
                 clone=self.trees[myroot]["vartree"].settings
             )
             if self.soname_deps_enabled and "remove" not in params:
@@ -246,17 +257,17 @@ class _frozen_depgraph_config:
         else:
             self._required_set_names = {"world"}
 
-        atoms = " ".join(myopts.get("--exclude", [])).split() # type: ignore # reason: --exclude is always an Iterable[str]
+        atoms = " ".join(myopts.get("--exclude", [])).split()  # type: ignore # reason: --exclude is always an Iterable[str]
         self.excluded_pkgs = _wildcard_set(atoms)
-        atoms = " ".join(myopts.get("--reinstall-atoms", [])).split() # type: ignore # reason: --reinstall-atoms is always Iterable[str]
+        atoms = " ".join(myopts.get("--reinstall-atoms", [])).split()  # type: ignore # reason: --reinstall-atoms is always Iterable[str]
         self.reinstall_atoms = _wildcard_set(atoms)
-        atoms = " ".join(myopts.get("--usepkg-exclude", [])).split() # type: ignore # reason: --usepkg-exclude is always Iterable[str]
+        atoms = " ".join(myopts.get("--usepkg-exclude", [])).split()  # type: ignore # reason: --usepkg-exclude is always Iterable[str]
         self.usepkg_exclude = _wildcard_set(atoms)
-        atoms = " ".join(myopts.get("--useoldpkg-atoms", [])).split() # type: ignore # reason: --usepkg-exclude is always Iterable[str]
+        atoms = " ".join(myopts.get("--useoldpkg-atoms", [])).split()  # type: ignore # reason: --usepkg-exclude is always Iterable[str]
         self.useoldpkg_atoms = _wildcard_set(atoms)
-        atoms = " ".join(myopts.get("--rebuild-exclude", [])).split() # type: ignore # reason: --rebuild-exclude is always Iterable[str]
+        atoms = " ".join(myopts.get("--rebuild-exclude", [])).split()  # type: ignore # reason: --rebuild-exclude is always Iterable[str]
         self.rebuild_exclude = _wildcard_set(atoms)
-        atoms = " ".join(myopts.get("--rebuild-ignore", [])).split() # type: ignore # reason: --rebuild-ignore is always Iterable[str]
+        atoms = " ".join(myopts.get("--rebuild-ignore", [])).split()  # type: ignore # reason: --rebuild-ignore is always Iterable[str]
         self.rebuild_ignore = _wildcard_set(atoms)
 
         self.rebuild_if_new_rev = "--rebuild-if-new-rev" in myopts
@@ -10119,7 +10130,9 @@ class depgraph:
         pretend = "--pretend" in self._frozen_config.myopts
         enter_invalid = "--ask-enter-invalid" in self._frozen_config.myopts
 
-        def check_if_latest(pkg: Package, check_visibility: bool = False) -> Tuple[bool, bool]:
+        def check_if_latest(
+            pkg: Package, check_visibility: bool = False
+        ) -> Tuple[bool, bool]:
             is_latest = True
             is_latest_in_slot = True
             dbs = self._dynamic_config._filtered_trees[pkg.root]["dbs"]
@@ -11368,7 +11381,13 @@ class _dep_check_composite_db(dbapi):
             self._cpv_pkg_map[pkg.cpv] = pkg
         return ret[:]
 
-    def _visible(self, pkg: Package, atom_set: InternalPackageSet, avoid_slot_conflict: bool = True, probe_virt_update: bool = True) -> bool:
+    def _visible(
+        self,
+        pkg: Package,
+        atom_set: InternalPackageSet,
+        avoid_slot_conflict: bool = True,
+        probe_virt_update: bool = True,
+    ) -> bool:
         if pkg.installed and not self._depgraph._want_installed_pkg(pkg):
             return False
         if pkg.installed and (
@@ -11452,7 +11471,9 @@ class _dep_check_composite_db(dbapi):
             return False
         return True
 
-    def _iter_virt_update(self, pkg: Package, atom_set: InternalPackageSet) -> Iterator[Package]:
+    def _iter_virt_update(
+        self, pkg: Package, atom_set: InternalPackageSet
+    ) -> Iterator[Package]:
         if (
             self._depgraph._select_atoms_parent is not None
             and self._depgraph._want_update_pkg(
@@ -11489,7 +11510,13 @@ class _dep_check_composite_db(dbapi):
         return [pkg.cpv for pkg in self.match_pkgs(atom)]
 
 
-def ambiguous_package_name(arg: str, atoms: List[Atom], root_config: RootConfig, spinner: stdout_spinner, myopts: Dict[str, Union[bool, int, str]]) -> None:
+def ambiguous_package_name(
+    arg: str,
+    atoms: List[Atom],
+    root_config: RootConfig,
+    spinner: stdout_spinner,
+    myopts: Dict[str, Union[bool, int, str]],
+) -> None:
     if "--quiet" in myopts:
         writemsg(
             f'!!! The short ebuild name "{arg}" is ambiguous. Please specify\n',
@@ -11527,7 +11554,9 @@ def ambiguous_package_name(arg: str, atoms: List[Atom], root_config: RootConfig,
     )
 
 
-def _spinner_start(spinner: stdout_spinner, myopts: Dict[str, Union[bool, str]]) -> None:
+def _spinner_start(
+    spinner: stdout_spinner, myopts: Dict[str, Union[bool, str]]
+) -> None:
     if spinner is None:
         return
     if "--quiet" not in myopts and (
@@ -11973,7 +12002,13 @@ def show_blocker_docs_link():
     )
 
 
-def get_masking_status(pkg: Package, pkgsettings: config, root_config: RootConfig, myrepo: Optional[str] = None, use: Optional[FrozenSet[str]] = None) -> List[_MaskReason]:
+def get_masking_status(
+    pkg: Package,
+    pkgsettings: config,
+    root_config: RootConfig,
+    myrepo: Optional[str] = None,
+    use: Optional[FrozenSet[str]] = None,
+) -> List[_MaskReason]:
     return [
         mreason.message
         for mreason in _get_masking_status(
@@ -11982,7 +12017,13 @@ def get_masking_status(pkg: Package, pkgsettings: config, root_config: RootConfi
     ]
 
 
-def _get_masking_status(pkg: Package, pkgsettings: config, root_config: RootConfig, myrepo: Optional[str] = None, use: Optional[FrozenSet[str]] = None) -> List[_MaskReason]:
+def _get_masking_status(
+    pkg: Package,
+    pkgsettings: config,
+    root_config: RootConfig,
+    myrepo: Optional[str] = None,
+    use: Optional[FrozenSet[str]] = None,
+) -> List[_MaskReason]:
     mreasons = _getmaskingstatus(
         pkg,
         settings=pkgsettings,
