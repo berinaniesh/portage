@@ -117,7 +117,13 @@ from typing import (
 )
 
 if TYPE_CHECKING:
-    pass
+    import portage.dep_getkey # type: ignore # reason: object proxying
+    import portage.catsplit # type: ignore # reason: object proxying
+    import portage.writemsg_stdout # type: ignore # reason: object proxying
+    import portage.writemsg # type: ignore # reason: object proxying
+    import portage.isvalidatom # type: ignore # reason: object proxying
+    import portage.digraph # type: ignore # reason: object proxying
+    import portage.getmaskingreason # type: ignore
 
 from _emerge.stdout_spinner import stdout_spinner
 from portage._sets.base import InternalPackageSet
@@ -138,6 +144,8 @@ from portage.dbapi.porttree import portdbapi
 from portage.dbapi.porttree import portagetree
 from portage.dbapi.bintree import binarytree
 from portage.package.ebuild.getmaskingstatus import _MaskReason
+import portage.xpak
+import portage.gpkg
 
 
 def ppp(var):
@@ -244,7 +252,7 @@ class _frozen_depgraph_config:
                 ignore_built_slot_operator_deps=ignore_built_slot_operator_deps,
                 soname_deps=self.soname_deps_enabled,
             )
-            self.pkgsettings[myroot] = portage.config(  # type: ignore # reason: object proxying
+            self.pkgsettings[myroot] = portage.config(
                 clone=self.trees[myroot]["vartree"].settings
             )
             if self.soname_deps_enabled and "remove" not in params:
@@ -531,7 +539,7 @@ class _dynamic_depgraph_config:
         self._visible_pkgs = {}
         # contains the args created by select_files
         self._initial_arg_list: List[Any] = []
-        self.digraph = portage.digraph() # type: ignore # reason: object proxy
+        self.digraph = portage.digraph()
         # manages sets added to the graph
         self.sets = {}
         # contains all nodes pulled in by self.sets
@@ -720,7 +728,7 @@ class depgraph:
         settings: config,
         trees: _trees_dict,
         myopts: Dict[str, Union[bool, str]],
-        myparams: Dict[str, Union[bool, int, str]],
+        myparams: Dict[str, Union[bool, str]],
         spinner: stdout_spinner,
         frozen_config: Optional["_frozen_depgraph_config"] = None,
         backtrack_parameters: BacktrackParameter = BacktrackParameter(),
@@ -2787,7 +2795,7 @@ class depgraph:
             )
         return frozenset(x.unevaluated_atom for x in selected_atoms)
 
-    def _flatten_atoms(self, pkg: Package, use: FrozenSet[Atom]) -> FrozenSet[Atom]:
+    def _flatten_atoms(self, pkg: Package, use: FrozenSet[Union[str, Atom]]) -> FrozenSet[Union[str, Atom]]:
         """
         Evaluate all dependency atoms of the given package, and return
         them as a frozenset. For performance, results are cached.
@@ -2830,7 +2838,7 @@ class depgraph:
         return atoms
 
     def _iter_similar_available(
-        self, graph_pkg: Package, atom: Atom, autounmask_level: Optional[int] = None
+        self, graph_pkg: Package, atom: Union[str, Atom], autounmask_level: Optional[int] = None
     ) -> Iterator[Package]:
         """
         Given a package that's in the graph, do a rough check to
@@ -11625,13 +11633,13 @@ def _spinner_stop(spinner: stdout_spinner) -> None:
 
 
 def backtrack_depgraph(
-    settings: portage.package.ebuild.config.config,
+    settings: config,
     trees: portage._trees_dict,
     myopts: Dict[str, Union[bool, str]],
     myparams: Dict[str, Union[int, str, bool]],
     myaction: Optional[str],
     myfiles: List[str],
-    spinner: "_emerge.stdout_spinner.stdout_spinner",
+    spinner: "stdout_spinner",
 ) -> Tuple[Any, depgraph, List[str]]:
     """
 
@@ -11653,7 +11661,7 @@ def _backtrack_depgraph(
     myparams: Dict[str, Union[bool, int, str]],
     myaction: Optional[str],
     myfiles: List[str],
-    spinner: "_emerge.stdout_spinner.stdout_spinner",
+    spinner: "stdout_spinner",
 ) -> Tuple[Any, depgraph, List[str]]:
     debug = "--debug" in myopts
     mydepgraph = None
@@ -11751,12 +11759,12 @@ def _backtrack_depgraph(
 
 
 def resume_depgraph(
-    settings: portage.package.ebuild.config.config,
+    settings: config,
     trees: portage._trees_dict,
     mtimedb: Any,
     myopts: Dict[str, Union[bool, str]],
     myparams: Dict[str, Union[bool, int, str]],
-    spinner: "_emerge.stdout_spinner.stdout_spinner",
+    spinner: "stdout_spinner",
 ):
     """
     Raises PackageSetNotFound if myfiles contains a missing package set.
@@ -11769,12 +11777,12 @@ def resume_depgraph(
 
 
 def _resume_depgraph(
-    settings: portage.package.ebuild.config.config,
+    settings: config,
     trees: portage._trees_dict,
     mtimedb: Any,
     myopts: Dict[str, Union[bool, str]],
     myparams: Dict[str, Union[bool, int, str]],
-    spinner: "_emerge.stdout_spinner.stdout_spinner",
+    spinner: "stdout_spinner",
 ):
     """
     Construct a depgraph for the given resume list. This will raise

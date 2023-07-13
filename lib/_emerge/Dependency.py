@@ -4,6 +4,9 @@
 from portage.util.SlotObject import SlotObject
 from _emerge.DepPriority import DepPriority
 
+# Type annotation imports
+from typing import Any
+
 
 class Dependency(SlotObject):
     __slots__ = (
@@ -19,6 +22,14 @@ class Dependency(SlotObject):
         "collapsed_parent",
         "collapsed_priority",
     )
+
+    atom: Any
+    root: Any
+    blocker: Any
+    cp: Any
+    parent: Any
+    child: Any
+    onlydeps: Any
 
     def __init__(self, **kwargs):
         SlotObject.__init__(self, **kwargs)

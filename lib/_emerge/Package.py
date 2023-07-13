@@ -21,6 +21,9 @@ from portage.eapi import _get_eapi_attrs
 from portage.exception import InvalidData, InvalidDependString
 from _emerge.Task import Task
 
+# Type annotation imports
+from typing import Any
+
 
 class Package(Task):
     __hash__ = Task.__hash__
@@ -92,6 +95,10 @@ class Package(Task):
     # fine with the declaration of these variables in __slots__.
     built: bool
     installed: bool
+    items: Any
+    depth: Any
+    root_config: Any
+    onlydeps: Any
 
     _dep_keys = ("BDEPEND", "DEPEND", "IDEPEND", "PDEPEND", "RDEPEND")
     _buildtime_keys = ("BDEPEND", "DEPEND")

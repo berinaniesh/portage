@@ -3,9 +3,16 @@
 
 from _emerge.AbstractDepPriority import AbstractDepPriority
 
+# Type annotation imports
+from typing import Any
 
 class DepPriority(AbstractDepPriority):
     __slots__ = ("satisfied", "optional", "ignored")
+
+    # Explicitely mentioned for type hints
+    satisfied: Any
+    optional: Any
+    ignored: Any
 
     def __int__(self):
         """

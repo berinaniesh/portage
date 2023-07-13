@@ -58,6 +58,8 @@ from portage.versions import (
 )
 import portage.cache.mappings
 
+# Type annotation imports
+from typing import Any
 
 # \w is [a-zA-Z0-9_]
 
@@ -1448,6 +1450,23 @@ class Atom(str):
 
     # Distiguishes soname atoms from other atom types
     soname = False
+
+    # Added for type hints
+    blocker: Any
+    unevaluated_atom: Any
+    without_use: Any
+    extend: Any
+    package: Any
+    match: Any
+    blocker: Any
+    unevaluated_atom: Any
+    sub_slot: Any
+    use: Any
+    _metadata: Any
+    installed: Any
+    iuse: Any
+    eapi: Any
+    cpv: Any
 
     class _blocker:
         __slots__ = ("overlap",)
